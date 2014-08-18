@@ -76,6 +76,16 @@
         detailContentOffset = ((UIScrollView *)detailView).contentOffset;
     }
     
+    // Changed here because if the toVC has edgesForExtendedLayout set to go below the nav bar, it may need to be adjusted to avoid the
+    // jerkiness when finishing the transition
+    UIColor* navBarColor;
+    BOOL navBarOffsetMode=NO;
+    if((toVC.edgesForExtendedLayout & UIRectEdgeTop)==0){
+        detailContentOffset = CGPointMake(0, -toVC.navigationController.navigationBar.frame.size.height-20);
+        navBarColor=toVC.navigationController.navigationBar.backgroundColor;
+        navBarOffsetMode=YES;
+    }
+    
     // if the master view is a UIScrollView (eg a UITableView) then
     // get its content offset so we get the snapshot correctly and
     // so we can correctly calculate the split point for the zoom effect
@@ -89,8 +99,16 @@
     // only works for views that are currently visible in the view hierarchy
     UIGraphicsBeginImageContextWithOptions(detailView.bounds.size, detailView.opaque, 0);
     CGContextRef ctx = UIGraphicsGetCurrentContext();
+    if(navBarOffsetMode){
+        CGContextTranslateCTM(ctx, 0, 0);
+        CGFloat red = 245.0, green = 245.0, blue = 245.0, alpha = 1.0;
+        [navBarColor getRed:&red green:&green blue:&blue alpha:&alpha];
+        CGContextSetRGBFillColor(ctx, red, green, blue, alpha);
+        CGContextFillRect(ctx, CGRectMake(0, 0, detailView.bounds.size.width, -detailContentOffset.y));
+    }
     CGContextTranslateCTM(ctx, 0, -detailContentOffset.y);
     [detailView.layer renderInContext:ctx];
+    
     UIImage *detailSnapshot = UIGraphicsGetImageFromCurrentImageContext();
     UIGraphicsEndImageContext();
 
